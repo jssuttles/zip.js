@@ -39,7 +39,7 @@
 	var ERR_READ_DATA = "Error while reading file data.";
 	var ERR_DUPLICATED_NAME = "File already exists.";
 	var CHUNK_SIZE = 512 * 1024;
-	
+
 	var TEXT_PLAIN = "text/plain";
 
 	var appendABViewSupported;
@@ -73,7 +73,7 @@
 		}
 		return table;
 	})();
-	
+
 	// "no-op" codec
 	function NOOP() {}
 	NOOP.prototype.append = function append(bytes, onprogress) {
@@ -296,7 +296,7 @@
 	BlobWriter.prototype = new Writer();
 	BlobWriter.prototype.constructor = BlobWriter;
 
-	/** 
+	/**
 	 * inflate/deflate core functions
 	 * @param worker {Worker} web worker for the task.
 	 * @param initialMessage {Object} initial message to be sent to the worker. should contain
@@ -368,7 +368,7 @@
 					var msg = index === 0 ? initialMessage : {sn : sn};
 					msg.type = 'append';
 					msg.data = array;
-					
+
 					// posting a message with transferables will fail on IE10
 					try {
 						worker.postMessage(msg, [array.buffer]);
@@ -651,7 +651,7 @@
 						return;
 					}
 					reader.readUint8Array(datalength, reader.size - datalength, function(bytes) {
-						var i, index = 0, entries = [], entry, filename, comment, data = getDataHelper(bytes.length, bytes);
+						var i, index = 0, entries = [], entry, filename, extraField, comment, data = getDataHelper(bytes.length, bytes);
 						for (i = 0; i < fileslength; i++) {
 							entry = new Entry();
 							entry._worker = worker;
@@ -660,16 +660,20 @@
 								return;
 							}
 							readCommonHeader(entry, data, index + 6, true, onerror);
+							var isUTF8 = ((entry.bitFlag & 0x0800) === 0x0800);
 							entry.commentLength = data.view.getUint16(index + 32, true);
 							entry.directory = ((data.view.getUint8(index + 38) & 0x10) == 0x10);
 							entry.offset = data.view.getUint32(index + 42, true);
 							filename = getString(data.array.subarray(index + 46, index + 46 + entry.filenameLength));
-							entry.filename = ((entry.bitFlag & 0x0800) === 0x0800) ? decodeUTF8(filename) : decodeASCII(filename);
+							entry.filename = isUTF8 ? decodeUTF8(filename) : decodeASCII(filename);
 							if (!entry.directory && entry.filename.charAt(entry.filename.length - 1) == "/")
 								entry.directory = true;
+							extraField = getString(data.array.subarray(index + 46 + entry.filenameLength, index + 46
+								+ entry.filenameLength + entry.extraFieldLength));
+							entry.extraField = isUTF8 ? decodeUTF8(extraField) : decodeASCII(extraField);
 							comment = getString(data.array.subarray(index + 46 + entry.filenameLength + entry.extraFieldLength, index + 46
 									+ entry.filenameLength + entry.extraFieldLength + entry.commentLength));
-							entry.comment = ((entry.bitFlag & 0x0800) === 0x0800) ? decodeUTF8(comment) : decodeASCII(comment);
+							entry.comment = isUTF8 ? decodeUTF8(comment) : decodeASCII(comment);
 							entries.push(entry);
 							index += 46 + entry.filenameLength + entry.extraFieldLength + entry.commentLength;
 						}
