@@ -532,6 +532,9 @@
 	}
 
 	function readCommonHeader(entry, data, index, centralDirectory, onerror) {
+		// if (centralDirectory) {
+		// 	entry.versionBy = data.view.getUint16(index - 2, true);
+		// }
 		entry.version = data.view.getUint16(index, true);
 		entry.bitFlag = data.view.getUint16(index + 2, true);
 		entry.compressionMethod = data.view.getUint16(index + 4, true);
@@ -668,9 +671,8 @@
 							entry.filename = isUTF8 ? decodeUTF8(filename) : decodeASCII(filename);
 							if (!entry.directory && entry.filename.charAt(entry.filename.length - 1) == "/")
 								entry.directory = true;
-							extraField = getString(data.array.subarray(index + 46 + entry.filenameLength, index + 46
-								+ entry.filenameLength + entry.extraFieldLength));
-							entry.extraField = isUTF8 ? decodeUTF8(extraField) : decodeASCII(extraField);
+							entry.extraField = data.array.subarray(index + 46 + entry.filenameLength, index + 46
+								+ entry.filenameLength + entry.extraFieldLength);
 							comment = getString(data.array.subarray(index + 46 + entry.filenameLength + entry.extraFieldLength, index + 46
 									+ entry.filenameLength + entry.extraFieldLength + entry.commentLength));
 							entry.comment = isUTF8 ? decodeUTF8(comment) : decodeASCII(comment);
@@ -743,7 +745,7 @@
 					var data;
 					date = options.lastModDate || new Date();
 					header = getDataHelper(26);
-					var extraField = getBytes(encodeUTF8(options.extraField || ""));
+					var extraField = options.extraField || [];
 					files[name] = {
 						headerArray : header.array,
 						directory : options.directory,
