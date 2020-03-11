@@ -7,8 +7,8 @@
  1. Redistributions of source code must retain the above copyright notice,
  this list of conditions and the following disclaimer.
 
- 2. Redistributions in binary form must reproduce the above copyright 
- notice, this list of conditions and the following disclaimer in 
+ 2. Redistributions in binary form must reproduce the above copyright
+ notice, this list of conditions and the following disclaimer in
  the documentation and/or other materials provided with the distribution.
 
  3. The names of the authors may not be used to endorse or promote products
@@ -143,7 +143,9 @@
 							onprogress(currentIndex + index, totalSize);
 					}, {
 						directory : child.directory,
-						version : child.zipVersion
+						version : child.zipVersion,
+						extraField : child.extraField,
+						comment : child.comment
 					});
 				else
 					onend();
@@ -315,6 +317,8 @@
 			that.children = [];
 			that.zipVersion = params.zipVersion || 0x14;
 			that.uncompressedSize = 0;
+			that.extraField = params.extraField;
+			that.comment = params.comment;
 			fs.entries.push(that);
 			if (parent)
 				that.parent.children.push(that);
@@ -411,27 +415,34 @@
 	ZipDirectoryEntryProto.addDirectory = function(name) {
 		return addChild(this, name, null, true);
 	};
-	ZipDirectoryEntryProto.addText = function(name, text) {
-		return addChild(this, name, {
+	ZipDirectoryEntryProto.addText = function(name, text, params) {
+		params = params || {};
+		Object.assign(params, {
 			data : text,
 			Reader : TextReader,
 			Writer : TextWriter
 		});
+		return addChild(this, name, params);
 	};
-	ZipDirectoryEntryProto.addBlob = function(name, blob) {
-		return addChild(this, name, {
+	ZipDirectoryEntryProto.addBlob = function(name, blob, params) {
+		params = params || {};
+		Object.assign(params, {
 			data : blob,
 			Reader : BlobReader,
 			Writer : BlobWriter
 		});
+		return addChild(this, name, params);
 	};
-	ZipDirectoryEntryProto.addData64URI = function(name, dataURI) {
-		return addChild(this, name, {
+	ZipDirectoryEntryProto.addData64URI = function(name, dataURI, params) {
+		params = params || {};
+		Object.assign(params, {
 			data : dataURI,
 			Reader : Data64URIReader,
 			Writer : Data64URIWriter
 		});
+		return addChild(this, name, params);
 	};
+	// can't add extraField or comment params to this because it is unknown whether the fileEntry is a directory or a file at this point, and it is probably inadvisable to add the same comment and extraField to all files in a directory
 	ZipDirectoryEntryProto.addFileEntry = function(fileEntry, onend, onerror) {
 		addFileEntry(this, fileEntry, onend, onerror);
 	};
@@ -471,6 +482,8 @@
 					if (!entry.directory)
 						addChild(parent, name, {
 							data : entry,
+							extraField : entry.extraField,
+							comment : entry.comment,
 							Reader : ZipBlobReader
 						});
 				});

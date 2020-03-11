@@ -743,11 +743,13 @@
 					var data;
 					date = options.lastModDate || new Date();
 					header = getDataHelper(26);
+					var extraField = getBytes(encodeUTF8(options.extraField || ""));
 					files[name] = {
 						headerArray : header.array,
 						directory : options.directory,
 						filename : filename,
 						offset : datalength,
+						extraField: extraField,
 						comment : getBytes(encodeUTF8(options.comment || ""))
 					};
 					header.view.setUint32(0, 0x14000808);
@@ -758,6 +760,7 @@
 					header.view.setUint16(6, (((date.getHours() << 6) | date.getMinutes()) << 5) | date.getSeconds() / 2, true);
 					header.view.setUint16(8, ((((date.getFullYear() - 1980) << 4) | (date.getMonth() + 1)) << 5) | date.getDate(), true);
 					header.view.setUint16(22, filename.length, true);
+					header.view.setUint16(24, extraField.length, true);
 					data = getDataHelper(30 + filename.length);
 					data.view.setUint32(0, 0x504b0304);
 					data.array.set(header.array, 4);
@@ -822,7 +825,7 @@
 				var data, length = 0, index = 0, indexFilename, file;
 				for (indexFilename = 0; indexFilename < filenames.length; indexFilename++) {
 					file = files[filenames[indexFilename]];
-					length += 46 + file.filename.length + file.comment.length;
+					length += 46 + file.filename.length + file.extraField.length + file.comment.length;
 				}
 				data = getDataHelper(length + 22);
 				for (indexFilename = 0; indexFilename < filenames.length; indexFilename++) {
@@ -835,8 +838,9 @@
 						data.view.setUint8(index + 38, 0x10);
 					data.view.setUint32(index + 42, file.offset, true);
 					data.array.set(file.filename, index + 46);
-					data.array.set(file.comment, index + 46 + file.filename.length);
-					index += 46 + file.filename.length + file.comment.length;
+					data.array.set(file.extraField, index + 46 + file.filename.length);
+					data.array.set(file.comment, index + 46 + file.filename.length + file.extraField.length);
+					index += 46 + file.filename.length + file.extraField.length + file.comment.length;
 				}
 				data.view.setUint32(index, 0x504b0506);
 				data.view.setUint16(index + 8, filenames.length, true);
